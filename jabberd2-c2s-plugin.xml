@@ -1,0 +1,60 @@
+<plugin>
+
+<script name="hq-jabberd2-c2s-stat">
+<![CDATA[
+#!/usr/bin/python
+import sys,os,xmpp,time
+import psycopg2
+
+jidparams={'jid':'CHANGE@ME','password':'CHANGEME'}
+jid=xmpp.protocol.JID(jidparams['jid'])
+cl=xmpp.Client(jid.getDomain(),debug=[])
+con=cl.connect()
+if not con:
+    sys.exit()
+auth=cl.auth(jid.getNode(),jidparams['password'],resource=jid.getResource())
+if not auth:
+    sys.exit()
+#cl.SendInitPresence(requestRoster=0)   # you may need to uncomment this for old server
+roster = None
+roster = cl.getRoster()
+#TODO: add support for more databases
+conn = psycopg2.connect("dbname=jabberpl.org user=CHANGEME password=CHANGE host=127.0.0.1 port=5432")
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM authreg;");
+authreg=cur.fetchone()[0]
+print "Authreg=%s" % authreg
+#time.sleep(1)   # some older servers will not send the message if you disconnect immediately after sending
+cl.disconnect()
+
+]]>
+</script>
+
+<server name="jabberd2-c2s">
+
+<config>
+<option name="process.query" description="Process Query" default="Pid.PidFile.eq=/chroots/jabber/usr/local/jabberd2/var/jabberd/pid/c2s.pid"/>
+</config>
+
+<property name="HAS_BUILTIN_SERVICES" value="false"/>
+<property name="PROC_QUERY" value="Pid.PidFile.eq=/chroots/jabber/usr/local/jabberd2/var/jabberd/pid/c2s.pid"/>
+<plugin type="autoinventory" class="org.hyperic.hq.product.DaemonDetector"/>
+<plugin type="measurement" class="org.hyperic.hq.product.MeasurementPlugin"/>
+
+<metric name="Availability" alias="Availability" template="sigar:Type=ProcState,Arg=%process.query%:State"
+category="AVAILABILITY" indicator="true"/>
+
+<filter name="template" value="exec:timeout=10,file=pdk/work/scripts/jabberd2-c2s/hq-jabberd2-c2s-stat,exec=%exec%:${alias}"/>
+
+<metric name="Authreg" indicator="true"/>
+
+
+</server>
+
+<!--
+ ==================== Plugin Help ===========================
+-->
+<help name="jabberd2-c2s">
+Jabberd c2s Plugin
+</help>
+</plugin>
