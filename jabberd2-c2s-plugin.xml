@@ -3,6 +3,7 @@
 <script name="hq-jabberd2-c2s-stat">
 <![CDATA[
 #!/usr/bin/python
+# this is heavily base on xsend.py from python-xmpp Debian package
 import sys,os,xmpp,time
 import psycopg2
 
